@@ -40,7 +40,7 @@
 // Tudomasul veszem, hogy a forrasmegjeloles kotelmenek megsertese eseten a hazifeladatra adhato pontokat 
 // negativ elojellel szamoljak el es ezzel parhuzamosan eljaras is indul velem szemben.
 //=============================================================================================
-
+#include <iostream>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdlib.h>
@@ -115,12 +115,54 @@ struct Color {
    }
 };
 
+struct SplineElement {
+	Vector pos;
+	SplineElement *next;
+	SplineElement *prev;
+	
+	SplineElement(Vector v) {
+		pos = v;
+		next = NULL;
+		prev = NULL;
+	}
+	
+	~SplineElement() {
+		std::cout << pos.x;
+		delete next;
+	}
+	
+};
+
+struct Spline{
+	SplineElement *first;
+	SplineElement *last;
+	
+	Spline() {
+		first = NULL;
+		last = NULL;
+	}
+
+	void add(Vector v) {
+		SplineElement *spe = new SplineElement(v);
+		if (first == NULL) {
+			first = last = spe;
+		} else {
+			last -> next = spe;
+			spe -> prev = last;
+			last = spe;
+		}
+	}	
+
+	~Spline() {
+		delete first;
+	}
+};
+
+
 const int screenWidth = 600;	// alkalmazĂĄs ablak felbontĂĄsa
 const int screenHeight = 600;
 
-
 Color image[screenWidth*screenHeight];	// egy alkalmazĂĄs ablaknyi kĂŠp
-
 
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( ) { 
@@ -129,7 +171,7 @@ void onInitialization( ) {
     // Peldakent keszitunk egy kepet az operativ memoriaba
     for(int Y = 0; Y < screenHeight; Y++)
 		for(int X = 0; X < screenWidth; X++)
-			image[Y*screenWidth + X] = Color((float)X/screenWidth, (float)Y/screenHeight, 0);
+			image[Y*screenWidth + X] = Color(0,1,1);
 
 }
 
@@ -143,7 +185,7 @@ void onDisplay( ) {
     // Peldakent atmasoljuk a kepet a rasztertarba
     glDrawPixels(screenWidth, screenHeight, GL_RGB, GL_FLOAT, image);
     // Majd rajzolunk egy kek haromszoget
-	glColor3f(0, 0, 1);
+	glColor3f(0,0,1);
 	glBegin(GL_TRIANGLES);
 		glVertex2f(-0.2f, -0.2f);
 		glVertex2f( 0.2f, -0.2f);
@@ -170,7 +212,7 @@ void onKeyboardUp(unsigned char key, int x, int y) {
 // Eger esemenyeket lekezelo fuggveny
 void onMouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)   // A GLUT_LEFT_BUTTON / GLUT_RIGHT_BUTTON illetve GLUT_DOWN / GLUT_UP
-		glutPostRedisplay( ); 						 // Ilyenkor rajzold ujra a kepet
+		glutPostRedisplay( ); 						 		// Ilyenkor rajzold ujra a kepet
 }
 
 // Eger mozgast lekezelo fuggveny
@@ -190,6 +232,7 @@ void onIdle( ) {
 
 // A C++ program belepesi pontja, a main fuggvenyt mar nem szabad bantani
 int main(int argc, char **argv) {
+	
     glutInit(&argc, argv); 				// GLUT inicializalasa
     glutInitWindowSize(600, 600);			// Alkalmazas ablak kezdeti merete 600x600 pixel 
     glutInitWindowPosition(100, 100);			// Az elozo alkalmazas ablakhoz kepest hol tunik fel
