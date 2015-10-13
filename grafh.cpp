@@ -115,9 +115,80 @@ struct Color {
    }
 };
 
+const Color RED (1,0,0);
+const Color YELLOW (1,1,0);
+const Color WHITE(1,1,1);
+const Color CYAN(0,1,1);
+
+
+const int screenWidth = 600;	// alkalmazĂĄs ablak felbontĂĄsa
+const int screenHeight = 600;
+const int worldWidth = 1000;
+const int worldHeight = 1000;
+
+struct Camera {
+	
+	int xOffset;
+	int yOffset;
+	float xZoom;
+	float yZoom;
+	
+	Camera() {
+		xOffset = 0;
+		yOffset = 0;
+		xZoom = 1;
+		yZoom = 1;
+	}
+	
+	float convert_to_screen_x(float value) {
+		return ((value - xOffset) / worldWidth) * 2 * xZoom - xZoom;
+	}
+
+	float convert_to_screen_y(float value) {
+		return (((value - yOffset) / worldHeight) * 2 * yZoom - yZoom) * (-1);
+	}
+	
+	Vector convert_to_screen(Vector v) {
+		return Vector(convert_to_screen_x(v.x), convert_to_screen_y(v.y));
+	}
+	
+	float convert_to_screen(float l) {
+			return l / 1000 * 2 * xZoom;
+	}
+	
+	float convert_screen_x(float value) {
+		return value / screenWidth * worldWidth * xZoom + xOffset;
+	}
+	
+	float convert_screen_y(float value) {
+		return value / screenHeight * worldHeight * yZoom + yOffset;
+	}
+	
+	
+	void drawCircle(Vector point, float radius, Color fill, Color border) {
+		glColor3f(fill.r, fill.g, fill.b);
+		point = convert_to_screen(point);
+		radius = convert_to_screen(radius);
+		glBegin(GL_POLYGON);
+            for(float i = 0; i <= 2*M_PI; i+=0.1)
+				glVertex2f(point.x + radius * cos(i),point.y + radius * sin(i));
+		glEnd();
+		
+		glColor3f(border.r,  border.g, border.b);
+		glBegin(GL_LINE_LOOP);
+            for(float i = 0; i <= 2*M_PI; i+=0.1)
+				glVertex2f(point.x + radius * cos(i),point.y + radius * sin(i));
+		glEnd();
+	}
+	
+};
+
+Camera camera;
+
 struct SplineElement {
 	Vector pos;
 	long time; //ago in a galaxy far far away
+	static const float RADIUS = 5;
 	SplineElement *next;
 	SplineElement *prev;
 	
@@ -126,6 +197,12 @@ struct SplineElement {
 		time = t;
 		next = NULL;
 		prev = NULL;
+	}
+	
+	void drawElement() {
+		camera.drawCircle(pos,RADIUS,RED,WHITE);
+		if (next != NULL)
+			next -> drawElement();
 	}
 	
 	~SplineElement() {
@@ -152,44 +229,26 @@ struct Spline{
 			spe -> prev = last;
 			last = spe;
 		}
-	}	
+	}
+
+	void draw() {
+		
+		SplineElement* moving = first;
+		
+		while (moving != NULL) {
+			
+			moving = moving -> next;
+		}
+		glEnd();
+		
+		if (first != NULL)
+			first->drawElement();
+	}
 
 	~Spline() {
 		delete first;
 	}
 };
-
-struct World {
-	
-	int width = 1000;
-	int height = 1000;
-	int xOffset = 0;
-	int yOffset = 0;
-	float xZoom = 1;
-	float yZoom = 1;
-	
-	float convert_to_screen_x(float value, int screenParam = 600) {
-		return ((value - xOffset) / width) * screenParam * xZoom;
-	}
-
-	float convert_to_screen_y(float value, int screenParam = 600) {
-		return ((value - yOffset) / height) * screenParam * yZoom;
-	}
-	
-	float convert_screen_x(float value, int screenParam = 600) {
-		return value / screenParam * width * xZoom + xOffset;
-	}
-	
-	float convert_screen_y(float value, int screenParam = 600) {
-		return value / screenParam * height * yZoom + yOffset;
-	}
-	
-};
-
-World world;
-
-const int screenWidth = 600;	// alkalmazĂĄs ablak felbontĂĄsa
-const int screenHeight = 600;
 
 Color image[screenWidth*screenHeight];	// egy alkalmazĂĄs ablaknyi kĂŠp
 
@@ -202,7 +261,7 @@ void onInitialization( ) {
     // Peldakent keszitunk egy kepet az operativ memoriaba
     for(int Y = 0; Y < screenHeight; Y++)
 		for(int X = 0; X < screenWidth; X++)
-			image[Y*screenWidth + X] = Color(0,1,1);
+			image[Y*screenWidth + X] = Color((float)X/screenHeight,(float)Y/screenWidth,0);
 
 	
 
@@ -219,12 +278,8 @@ void onDisplay( ) {
     glDrawPixels(screenWidth, screenHeight, GL_RGB, GL_FLOAT, image);
     // Majd rajzolunk egy kek haromszoget
 	glColor3f(0,0,1);
-	glBegin(GL_TRIANGLES);
-		glVertex2f(-0.2f, -0.2f);
-		glVertex2f( 0.2f, -0.2f);
-		glVertex2f( 0.0f,  0.2f);
-	glEnd( );
 
+	mySpline.draw();
     // ...
 
     glutSwapBuffers();     				// Buffercsere: rajzolas vege
@@ -245,11 +300,12 @@ void onKeyboardUp(unsigned char key, int x, int y) {
 // Eger esemenyeket lekezelo fuggveny
 void onMouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-		float wx = world.convert_screen_x(x);
-		float wy = world.convert_screen_y(y);
+		float wx = camera.convert_screen_x(x);
+		float wy = camera.convert_screen_y(y);
 		long time = glutGet(GLUT_ELAPSED_TIME);
-		mySpline.add(Vector(x,y), time);
+		mySpline.add(Vector(wx,wy), time);
 		std::cout << wx << ", " << wy << ", " << time << std::endl;
+		glutPostRedisplay( );
 	}
 }
 
