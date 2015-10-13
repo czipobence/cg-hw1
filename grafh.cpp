@@ -126,6 +126,32 @@ const int screenHeight = 600;
 const int worldWidth = 1000;
 const int worldHeight = 1000;
 
+struct Hermite {
+	Vector p0, p1, v0, v1;
+	long t0, t1;
+	
+	Hermite() {
+	p0 = p1 = v0 = v1 = Vector(0,0);
+	t0 = t1 = 0;
+	}
+	
+	Hermite(Vector p0, Vector p1, Vector v0, Vector v1, long t0, long t1)
+	: p0(p0), p1(p1), v0(v0),v1(v1),t0(t0),t1(t1) {}
+	
+	Vector getVal(long t) {
+		long dt1 = t - t0;
+		long dt = t1 - t0;
+		
+		Vector a0 = p0;
+		Vector a1 = v0;
+		Vector a2 = (p1- p0) * (3.0 / (dt * dt)) - (v1 + v0 * 2.0) * (1.0 / dt) ;
+		Vector a3 = (p0 - p1) * (2.0 / dt / dt / dt) + (v0 + v1) * (1.0 / dt / dt);
+		return (a3 * dt1 * dt1 * dt1 + a2 * dt1 * dt1 + a1 * dt1 + a0); 
+	}
+	
+};
+
+
 struct Camera {
 	
 	int xOffset;
@@ -181,28 +207,69 @@ struct Camera {
 		glEnd();
 	}
 	
+	void drawHermite(Hermite h, Color line) {
+		glColor3f(line.r,line.g,line.b);
+		glBegin(GL_LINE_STRIP);
+		Vector converted;
+		for (long i = h.t0; i < h.t1; i++) {
+			converted = convert_to_screen(h.getVal(i));
+			glVertex2f(converted.x, converted.y);
+		}
+		
+		glEnd();
+	}
+	
 };
 
 Camera camera;
 
 struct SplineElement {
 	Vector pos;
+	Vector vel;
 	long time; //ago in a galaxy far far away
 	static const float RADIUS = 5;
 	SplineElement *next;
 	SplineElement *prev;
+	Hermite h;
 	
 	SplineElement(Vector v, long t) {
 		pos = v;
 		time = t;
 		next = NULL;
 		prev = NULL;
+		h = Hermite();
+		vel = Vector(0,0);
 	}
 	
 	void drawElement() {
 		camera.drawCircle(pos,RADIUS,RED,WHITE);
+		camera.drawHermite(h,WHITE);
+		std::cout << "DRAW x:" << pos.x << " Y:" << pos.y << " v: "<< vel.x << ", " << vel.y << std::endl;
+		//std::cout << "HERM P0: " << h.p0.x << ", " << h.p0.y << " t0:" << h.t0 << " V0: " << h.v0.x << ", " << h.v0.y <<
+		//" P1: " << h.p1.x << ", " << h.p1.y << " t1:" << h.t1 << " V1: " << h.v1.x << ", " << h.v1.y << std::endl;
+		std::cout << h.getVal(h.t1).x << "AAAND" << h.p1.x << std::endl;
 		if (next != NULL)
 			next -> drawElement();
+	}
+	
+	void recalculateVelocity() {
+		if ((prev != NULL) & (next != NULL)) {
+			vel = (next -> pos - pos) * (0.5 / (next -> time - time)) +
+			(pos - prev -> pos) * (0.5 / (time - prev -> time));
+		} else {
+			vel = Vector(0,0);
+		}
+	}
+	
+	void recalculateHermite() {
+		if (next != NULL) {
+			h.p0 = pos;
+			h.p1 = next->pos;
+			h.t0 = time;
+			h.t1 = next->time;
+			h.v0 = vel;
+			h.v1 = next -> vel;
+		}
 	}
 	
 	~SplineElement() {
@@ -214,10 +281,11 @@ struct SplineElement {
 struct Spline{
 	SplineElement *first;
 	SplineElement *last;
-	
+	int points;
 	Spline() {
 		first = NULL;
 		last = NULL;
+		points = 0;
 	}
 
 	void add(Vector v, long t) {
@@ -228,7 +296,14 @@ struct Spline{
 			last -> next = spe;
 			spe -> prev = last;
 			last = spe;
+			spe -> prev -> recalculateVelocity();
+			if (spe->prev -> prev != NULL) {
+				spe -> prev -> prev -> recalculateHermite();
+			}
+			spe -> prev -> recalculateHermite();
+			
 		}
+		points++;
 	}
 
 	void draw() {
@@ -317,7 +392,7 @@ void onMouseMotion(int x, int y)
 
 // `Idle' esemenykezelo, jelzi, hogy az ido telik, az Idle esemenyek frekvenciajara csak a 0 a garantalt minimalis ertek
 void onIdle( ) {
-     long time = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
+    // long time = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
 
 }
 
