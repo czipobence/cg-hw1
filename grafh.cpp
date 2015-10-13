@@ -117,17 +117,18 @@ struct Color {
 
 struct SplineElement {
 	Vector pos;
+	long time; //ago in a galaxy far far away
 	SplineElement *next;
 	SplineElement *prev;
 	
-	SplineElement(Vector v) {
+	SplineElement(Vector v, long t) {
 		pos = v;
+		time = t;
 		next = NULL;
 		prev = NULL;
 	}
 	
 	~SplineElement() {
-		std::cout << pos.x;
 		delete next;
 	}
 	
@@ -142,8 +143,8 @@ struct Spline{
 		last = NULL;
 	}
 
-	void add(Vector v) {
-		SplineElement *spe = new SplineElement(v);
+	void add(Vector v, long t) {
+		SplineElement *spe = new SplineElement(v,t);
 		if (first == NULL) {
 			first = last = spe;
 		} else {
@@ -158,11 +159,41 @@ struct Spline{
 	}
 };
 
+struct World {
+	
+	int width = 1000;
+	int height = 1000;
+	int xOffset = 0;
+	int yOffset = 0;
+	float xZoom = 1;
+	float yZoom = 1;
+	
+	float convert_to_screen_x(float value, int screenParam = 600) {
+		return ((value - xOffset) / width) * screenParam * xZoom;
+	}
+
+	float convert_to_screen_y(float value, int screenParam = 600) {
+		return ((value - yOffset) / height) * screenParam * yZoom;
+	}
+	
+	float convert_screen_x(float value, int screenParam = 600) {
+		return value / screenParam * width * xZoom + xOffset;
+	}
+	
+	float convert_screen_y(float value, int screenParam = 600) {
+		return value / screenParam * height * yZoom + yOffset;
+	}
+	
+};
+
+World world;
 
 const int screenWidth = 600;	// alkalmazĂĄs ablak felbontĂĄsa
 const int screenHeight = 600;
 
 Color image[screenWidth*screenHeight];	// egy alkalmazĂĄs ablaknyi kĂŠp
+
+Spline mySpline;
 
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( ) { 
@@ -172,6 +203,8 @@ void onInitialization( ) {
     for(int Y = 0; Y < screenHeight; Y++)
 		for(int X = 0; X < screenWidth; X++)
 			image[Y*screenWidth + X] = Color(0,1,1);
+
+	
 
 }
 
@@ -211,8 +244,13 @@ void onKeyboardUp(unsigned char key, int x, int y) {
 
 // Eger esemenyeket lekezelo fuggveny
 void onMouse(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)   // A GLUT_LEFT_BUTTON / GLUT_RIGHT_BUTTON illetve GLUT_DOWN / GLUT_UP
-		glutPostRedisplay( ); 						 		// Ilyenkor rajzold ujra a kepet
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+		float wx = world.convert_screen_x(x);
+		float wy = world.convert_screen_y(y);
+		long time = glutGet(GLUT_ELAPSED_TIME);
+		mySpline.add(Vector(x,y), time);
+		std::cout << wx << ", " << wy << ", " << time << std::endl;
+	}
 }
 
 // Eger mozgast lekezelo fuggveny
