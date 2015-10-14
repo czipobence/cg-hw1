@@ -103,6 +103,10 @@ struct Line {
 		dir = dir.norm();
 	}
 	
+	float getYForX(float x) {
+		float lambda = (dir.x == 0) ? 0 : (x - a.x) / (dir.x);
+		return a.y + dir.y * lambda;
+	}
 	
 	float dist (Vector v) {
 		Vector d = (a  - v) - dir * ((a - v) * dir);
@@ -148,6 +152,7 @@ const Color RED (1,0,0);
 const Color YELLOW (1,1,0);
 const Color WHITE(1,1,1);
 const Color CYAN(0,1,1);
+const Color GREEN(0,1,0);
 
 const int screenWidth = 600;	// alkalmazĂĄs ablak felbontĂĄsa
 const int screenHeight = 600;
@@ -249,6 +254,22 @@ struct Camera {
 			converted = h.getVal(i);
 			glVertex2f(converted.x, converted.y);
 		}
+		glEnd();
+	}
+	
+	void drawLine(Line l, Color c) {
+		glColor3f(c.r,c.g,c.b);
+		glBegin(GL_LINES);
+		if (l.dir.x != 0) {
+			float tmp = l.getYForX(xOffset);
+			glVertex2f(xOffset,tmp);
+			tmp = l.getYForX(xOffset + worldWidth / xZoom);
+			glVertex2f(xOffset + worldWidth / xZoom,tmp);
+		} else {
+			glVertex2f(l.a.x,yOffset);
+			glVertex2f(l.a.x,yOffset + worldHeight/ yZoom);
+		}
+		
 		glEnd();
 	}
 	
@@ -406,9 +427,6 @@ void onInitialization( ) {
 		for(int X = 0; X < screenWidth; X++)
 			image[Y*screenWidth + X] = CYAN;
 			//image[Y*screenWidth + X] = Color((float)X/screenHeight,(float)Y/screenWidth,0);
-
-	
-
 }
 
 // Rajzolas, ha az alkalmazas ablak ervenytelenne valik, akkor ez a fuggveny hivodik meg
@@ -416,7 +434,7 @@ void onDisplay( ) {
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);		// torlesi szin beallitasa
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
 
-    glMatrixMode(GL_PROJECTION);    //transzformáláshoz kell
+    glMatrixMode(GL_PROJECTION); 
     glLoadIdentity();
     gluOrtho2D(camera.xOffset,camera.xOffset + worldWidth / camera.xZoom,camera.yOffset,worldHeight/camera.yZoom);
 
@@ -426,7 +444,8 @@ void onDisplay( ) {
 	glColor3f(0,0,1);
 
 	mySpline.draw();
-    // ...
+
+	camera.drawLine(parabola.l, GREEN);
 
     glutSwapBuffers();     				// Buffercsere: rajzolas vege
 
