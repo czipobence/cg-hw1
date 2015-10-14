@@ -285,7 +285,7 @@ struct SplineElement {
 		}*/
 	}
 	
-	void recalculateHermite(SplineElement *first) {
+	void recalculateHermite(SplineElement *first, long points) {
 		h.v0 = vel;
 		h.t0 = time;
 		h.p0 = pos;
@@ -295,13 +295,7 @@ struct SplineElement {
 			h.v1 = next -> vel;
 		} else {
 			h.p1 = first->pos;
-			//h.t1 = first->time;
-			if (prev != NULL) {
-				h.t1 = 2*time - prev -> time;
-				std::cout << h.t1 << std::endl;
-			} else {
-				h.t1 = h.t0 + 2000;
-			}
+			h.t1 = (points == 0) ? time : time + (time - first -> time) / points; 
 			h.v1 = first -> vel;
 	
 		}
@@ -328,7 +322,7 @@ struct Spline{
 		if (first == NULL) {
 			first = last = spe;
 			first -> recalculateVelocity(first,last,points);
-			first -> recalculateHermite(first);
+			first -> recalculateHermite(first, points);
 		} else {
 			last -> next = spe;
 			spe -> prev = last;
@@ -337,11 +331,11 @@ struct Spline{
 			first -> recalculateVelocity(first,last, points);
 			spe -> recalculateVelocity(first,last, points);
 			if (spe->prev -> prev != NULL) {
-				spe -> prev -> prev -> recalculateHermite(first);
+				spe -> prev -> prev -> recalculateHermite(first, points);
 			}
-			spe -> prev -> recalculateHermite(first);
-			spe -> recalculateHermite(first);
-			first -> recalculateHermite(first);
+			spe -> prev -> recalculateHermite(first, points);
+			spe -> recalculateHermite(first, points);
+			first -> recalculateHermite(first, points);
 		}
 		points++;
 	}
