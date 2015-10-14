@@ -119,7 +119,8 @@ struct Parabola {
 	Parabola () : l(Vector::null(), Vector::null()), f(Vector::null()) {}
 };
 
- 
+Parabola parabola;
+
 //--------------------------------------------------------
 // Spektrum illetve szin
 //--------------------------------------------------------
@@ -148,11 +149,13 @@ const Color YELLOW (1,1,0);
 const Color WHITE(1,1,1);
 const Color CYAN(0,1,1);
 
-
 const int screenWidth = 600;	// alkalmazĂĄs ablak felbontĂĄsa
 const int screenHeight = 600;
 const int worldWidth = 1000;
 const int worldHeight = 1000;
+
+Color image[screenWidth*screenHeight];	// egy alkalmazĂĄs ablaknyi kĂŠp
+
 
 struct Hermite {
 	Vector p0, p1, v0, v1;
@@ -194,13 +197,13 @@ struct Camera {
 		yZoom = 1;
 	}
 	
-	float convert_to_screen_x(float value) {
+	/*float convert_to_screen_x(float value) {
 		return value;
 		//return ((value - xOffset) / worldWidth) * 2 * xZoom - xZoom;
 	}
 
 	float convert_to_screen_y(float value) {
-		return  worldHeight - value;
+		return  value;
 		//return (((value - yOffset) / worldHeight) * 2 * yZoom - yZoom) * (-1);
 	}
 	
@@ -212,20 +215,19 @@ struct Camera {
 		return l;
 		//return l / 1000 * 2 * xZoom;
 	}
+	*/
 	
 	float convert_screen_x(float value) {
 		return value / screenWidth * worldWidth * xZoom + xOffset;
 	}
 	
 	float convert_screen_y(float value) {
-		return value / screenHeight * worldHeight * yZoom + yOffset;
+		return (screenHeight - value) / screenHeight * worldHeight * yZoom + yOffset;
 	}
 	
 	
 	void drawCircle(Vector point, float radius, Color fill, Color border) {
 		glColor3f(fill.r, fill.g, fill.b);
-		point = convert_to_screen(point);
-		radius = convert_to_screen(radius);
 		
 		glBegin(GL_POLYGON);
             for(float i = 0; i <= 2*M_PI; i+=0.1)
@@ -244,7 +246,7 @@ struct Camera {
 		glBegin(GL_LINE_STRIP);
 		Vector converted;
 		for (long i = h.t0; i < h.t1; i++) {
-			converted = convert_to_screen(h.getVal(i));
+			converted = h.getVal(i);
 			glVertex2f(converted.x, converted.y);
 		}
 		glEnd();
@@ -253,6 +255,15 @@ struct Camera {
 };
 
 Camera camera;
+
+void fillImage(Color* image) {
+    for(int Y = 0; Y < screenHeight; Y++) {
+		for(int X = 0; X < screenWidth; X++) {
+			Vector v(camera.convert_screen_x(X),worldHeight - camera.convert_screen_y(Y));
+			image[Y * screenHeight + X] = (parabola.l.dist(v) < parabola.f.Dist(v)) ? YELLOW : CYAN;
+		}
+	}
+}
 
 struct SplineElement {
 	Vector pos;
@@ -366,6 +377,10 @@ struct Spline{
 			first -> recalculateHermite(first, points);
 		}
 		points++;
+		if (points == 3) {
+			parabola = Parabola(first -> pos, first -> next -> pos, first -> next -> next -> pos);
+			fillImage(image);
+		}
 	}
 
 	void draw() {		
@@ -379,8 +394,6 @@ struct Spline{
 		delete first;
 	}
 };
-
-Color image[screenWidth*screenHeight];	// egy alkalmazĂĄs ablaknyi kĂŠp
 
 Spline mySpline;
 
