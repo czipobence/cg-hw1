@@ -376,7 +376,7 @@ void onDisplay( ) {
 
     glMatrixMode(GL_PROJECTION);    //transzformáláshoz kell
     glLoadIdentity();
-    gluOrtho2D(0,1000,0,1000);
+    gluOrtho2D(camera.xOffset,camera.xOffset + worldWidth / camera.xZoom,camera.yOffset,worldHeight/camera.yZoom);
 
     // Peldakent atmasoljuk a kepet a rasztertarba
     glDrawPixels(screenWidth, screenHeight, GL_RGB, GL_FLOAT, image);
@@ -393,7 +393,6 @@ void onDisplay( ) {
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y) {
     if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
-
 }
 
 // Billentyuzet esemenyeket lekezelo fuggveny (felengedes)
