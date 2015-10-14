@@ -91,8 +91,34 @@ struct Vector {
    }
    float Length() { return sqrt(x * x + y * y + z * z); }
    float Dist(Vector v) { return (*this - v).Length(); }
-   Vector norm() {return *this * (1 / this->Length()); } 
+   Vector norm() {return *this * (1 / this->Length()); }
+   static Vector null() {return Vector (0,0);}
 };
+
+struct Line {
+	Vector a;
+	Vector dir;
+	Line(Vector l1, Vector l2) : a(l1) {
+		dir = l1 - l2;
+		dir = dir.norm();
+	}
+	
+	
+	float dist (Vector v) {
+		Vector d = (a  - v) - dir * ((a - v) * dir);
+		return d.Length();
+	}
+	
+};
+
+struct Parabola {
+	Line l;
+	Vector f;
+	
+	Parabola (Vector l1, Vector l2, Vector f) : l(l1,l2), f(f) {}
+	Parabola () : l(Vector::null(), Vector::null()), f(Vector::null()) {}
+};
+
  
 //--------------------------------------------------------
 // Spektrum illetve szin
@@ -354,29 +380,6 @@ struct Spline{
 	}
 };
 
-struct Line {
-	Vector a;
-	Vector dir;
-	Line(Vector l1, Vector l2) : a(l1) {
-		dir = l1 - l2;
-		dir = dir.norm();
-	}
-	
-	float distance (Vector v) {
-		Vector d = (a  - v) - dir * ((a - v) * dir);
-		return d.Length();
-	}
-	
-};
-
-struct Parabola {
-	Line l;
-	Vector f;
-	
-	Parabola (Vector l1, Vector l2, Vector f) : l(l1,l2), f(f) {}
-	
-};
-
 Color image[screenWidth*screenHeight];	// egy alkalmazĂĄs ablaknyi kĂŠp
 
 Spline mySpline;
@@ -455,8 +458,6 @@ void onIdle( ) {
 
 // A C++ program belepesi pontja, a main fuggvenyt mar nem szabad bantani
 int main(int argc, char **argv) {
-	Line l(Vector(0,0) , Vector (3,3));
-	std::cout << l.distance(Vector(0,2)) << std::endl;
     glutInit(&argc, argv); 				// GLUT inicializalasa
     glutInitWindowSize(600, 600);			// Alkalmazas ablak kezdeti merete 600x600 pixel 
     glutInitWindowPosition(100, 100);			// Az elozo alkalmazas ablakhoz kepest hol tunik fel
