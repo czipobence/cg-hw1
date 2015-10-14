@@ -167,11 +167,13 @@ struct Camera {
 	}
 	
 	float convert_to_screen_x(float value) {
-		return ((value - xOffset) / worldWidth) * 2 * xZoom - xZoom;
+		return value;
+		//return ((value - xOffset) / worldWidth) * 2 * xZoom - xZoom;
 	}
 
 	float convert_to_screen_y(float value) {
-		return (((value - yOffset) / worldHeight) * 2 * yZoom - yZoom) * (-1);
+		return  worldHeight - value;
+		//return (((value - yOffset) / worldHeight) * 2 * yZoom - yZoom) * (-1);
 	}
 	
 	Vector convert_to_screen(Vector v) {
@@ -179,7 +181,8 @@ struct Camera {
 	}
 	
 	float convert_to_screen(float l) {
-			return l / 1000 * 2 * xZoom;
+		return l;
+		//return l / 1000 * 2 * xZoom;
 	}
 	
 	float convert_screen_x(float value) {
@@ -195,6 +198,7 @@ struct Camera {
 		glColor3f(fill.r, fill.g, fill.b);
 		point = convert_to_screen(point);
 		radius = convert_to_screen(radius);
+		
 		glBegin(GL_POLYGON);
             for(float i = 0; i <= 2*M_PI; i+=0.1)
 				glVertex2f(point.x + radius * cos(i),point.y + radius * sin(i));
@@ -240,22 +244,25 @@ struct SplineElement {
 		vel = Vector(0,0);
 	}
 	
-	void drawElement() {
+	void drawPoint() {
 		camera.drawCircle(pos,RADIUS,RED,WHITE);
-		camera.drawHermite(h,WHITE);
 		//std::cout << "DRAW x:" << pos.x << " Y:" << pos.y << " v: "<< vel.x << ", " << vel.y << std::endl;
 		//std::cout << "HERM P0: " << h.p0.x << ", " << h.p0.y << " t0:" << h.t0 << " V0: " << h.v0.x << ", " << h.v0.y <<
 		//" P1: " << h.p1.x << ", " << h.p1.y << " t1:" << h.t1 << " V1: " << h.v1.x << ", " << h.v1.y << std::endl;
-		//std::cout << h.getVal(h.t1).x << "AAAND" << h.p1.x << std::endl;
 		if (next != NULL)
-			next -> drawElement();
+			next -> drawPoint();
+	}
+	
+	void drawSpline() {
+		camera.drawHermite(h,WHITE);
+		if (next != NULL)
+			next -> drawSpline();
 	}
 	
 	void recalculateVelocity(SplineElement* first, SplineElement* last, long points) {
 		SplineElement *n,*p;
 		long dt1, dt2;
-		
-		
+
 		if (prev == NULL) {
 			p = last;
 			dt2 = (points == 0) ? 0 : (last -> time - first -> time)/ points;
@@ -273,16 +280,7 @@ struct SplineElement {
 		}
 		
 		
-		vel = (n -> pos - pos) * (0.5 / dt1) +
-			(pos - p -> pos) * (0.5 / dt2);
-		
-		
-		/*if ((prev != NULL) & (next != NULL)) {
-			vel = (next -> pos - pos) * (0.5 / (next -> time - time)) +
-			(pos - prev -> pos) * (0.5 / (time - prev -> time));
-		} else {
-			vel = Vector(0,0);
-		}*/
+		vel = (n -> pos - pos) * (0.5 / dt1) + (pos - p -> pos) * (0.5 / dt2);
 	}
 	
 	void recalculateHermite(SplineElement *first, long points) {
@@ -327,9 +325,11 @@ struct Spline{
 			last -> next = spe;
 			spe -> prev = last;
 			last = spe;
+			
 			spe -> prev -> recalculateVelocity(first,last, points);
-			first -> recalculateVelocity(first,last, points);
 			spe -> recalculateVelocity(first,last, points);
+			first -> recalculateVelocity(first,last, points);
+			
 			if (spe->prev -> prev != NULL) {
 				spe -> prev -> prev -> recalculateHermite(first, points);
 			}
@@ -340,18 +340,11 @@ struct Spline{
 		points++;
 	}
 
-	void draw() {
-		
-		SplineElement* moving = first;
-		
-		while (moving != NULL) {
-			
-			moving = moving -> next;
+	void draw() {		
+		if (first != NULL) {
+			first->drawSpline();
+			first->drawPoint();
 		}
-		glEnd();
-		
-		if (first != NULL)
-			first->drawElement();
 	}
 
 	~Spline() {
@@ -381,7 +374,9 @@ void onDisplay( ) {
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);		// torlesi szin beallitasa
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
 
-    // ..
+    glMatrixMode(GL_PROJECTION);    //transzformáláshoz kell
+    glLoadIdentity();
+    gluOrtho2D(0,1000,0,1000);
 
     // Peldakent atmasoljuk a kepet a rasztertarba
     glDrawPixels(screenWidth, screenHeight, GL_RGB, GL_FLOAT, image);
