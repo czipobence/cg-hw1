@@ -215,7 +215,6 @@ struct Camera {
 			converted = convert_to_screen(h.getVal(i));
 			glVertex2f(converted.x, converted.y);
 		}
-		
 		glEnd();
 	}
 	
@@ -244,31 +243,67 @@ struct SplineElement {
 	void drawElement() {
 		camera.drawCircle(pos,RADIUS,RED,WHITE);
 		camera.drawHermite(h,WHITE);
-		std::cout << "DRAW x:" << pos.x << " Y:" << pos.y << " v: "<< vel.x << ", " << vel.y << std::endl;
+		//std::cout << "DRAW x:" << pos.x << " Y:" << pos.y << " v: "<< vel.x << ", " << vel.y << std::endl;
 		//std::cout << "HERM P0: " << h.p0.x << ", " << h.p0.y << " t0:" << h.t0 << " V0: " << h.v0.x << ", " << h.v0.y <<
 		//" P1: " << h.p1.x << ", " << h.p1.y << " t1:" << h.t1 << " V1: " << h.v1.x << ", " << h.v1.y << std::endl;
-		std::cout << h.getVal(h.t1).x << "AAAND" << h.p1.x << std::endl;
+		//std::cout << h.getVal(h.t1).x << "AAAND" << h.p1.x << std::endl;
 		if (next != NULL)
 			next -> drawElement();
 	}
 	
-	void recalculateVelocity() {
-		if ((prev != NULL) & (next != NULL)) {
+	void recalculateVelocity(SplineElement* first, SplineElement* last, long points) {
+		SplineElement *n,*p;
+		long dt1, dt2;
+		
+		
+		if (prev == NULL) {
+			p = last;
+			dt2 = (points == 0) ? 0 : (last -> time - first -> time)/ points;
+		} else {
+			p = prev;
+			dt2 = time - p-> time;
+		}
+		
+		if (next == NULL) {
+			n = first;
+			dt1 = (points == 0) ? 0 : (last -> time - first -> time)/ points;
+		} else {
+			n = next;
+			dt1 = n-> time - time;
+		}
+		
+		
+		vel = (n -> pos - pos) * (0.5 / dt1) +
+			(pos - p -> pos) * (0.5 / dt2);
+		
+		
+		/*if ((prev != NULL) & (next != NULL)) {
 			vel = (next -> pos - pos) * (0.5 / (next -> time - time)) +
 			(pos - prev -> pos) * (0.5 / (time - prev -> time));
 		} else {
 			vel = Vector(0,0);
-		}
+		}*/
 	}
 	
-	void recalculateHermite() {
+	void recalculateHermite(SplineElement *first) {
+		h.v0 = vel;
+		h.t0 = time;
+		h.p0 = pos;
 		if (next != NULL) {
-			h.p0 = pos;
 			h.p1 = next->pos;
-			h.t0 = time;
 			h.t1 = next->time;
-			h.v0 = vel;
 			h.v1 = next -> vel;
+		} else {
+			h.p1 = first->pos;
+			//h.t1 = first->time;
+			if (prev != NULL) {
+				h.t1 = 2*time - prev -> time;
+				std::cout << h.t1 << std::endl;
+			} else {
+				h.t1 = h.t0 + 2000;
+			}
+			h.v1 = first -> vel;
+	
 		}
 	}
 	
@@ -281,7 +316,7 @@ struct SplineElement {
 struct Spline{
 	SplineElement *first;
 	SplineElement *last;
-	int points;
+	long points;
 	Spline() {
 		first = NULL;
 		last = NULL;
@@ -292,16 +327,21 @@ struct Spline{
 		SplineElement *spe = new SplineElement(v,t);
 		if (first == NULL) {
 			first = last = spe;
+			first -> recalculateVelocity(first,last,points);
+			first -> recalculateHermite(first);
 		} else {
 			last -> next = spe;
 			spe -> prev = last;
 			last = spe;
-			spe -> prev -> recalculateVelocity();
+			spe -> prev -> recalculateVelocity(first,last, points);
+			first -> recalculateVelocity(first,last, points);
+			spe -> recalculateVelocity(first,last, points);
 			if (spe->prev -> prev != NULL) {
-				spe -> prev -> prev -> recalculateHermite();
+				spe -> prev -> prev -> recalculateHermite(first);
 			}
-			spe -> prev -> recalculateHermite();
-			
+			spe -> prev -> recalculateHermite(first);
+			spe -> recalculateHermite(first);
+			first -> recalculateHermite(first);
 		}
 		points++;
 	}
