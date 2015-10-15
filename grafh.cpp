@@ -220,14 +220,14 @@ struct Camera {
 		yZoom = 1;
 	}
 	
-	float convert_to_screen_x(float value) {
+	long convert_to_screen_x(float value) {
 		//return value;
-		return ((value - xOffset) / worldWidth) * screenWidth * xZoom;
+		return (long)(((value - xOffset) / worldWidth) * screenWidth * xZoom);
 	}
 
-	float convert_to_screen_y(float value) {
+	long convert_to_screen_y(float value) {
 		return  value;
-		return (((value - yOffset) / worldHeight) * screenHeight * yZoom) ;
+		return (long)((((value - yOffset) / worldHeight) * screenHeight * yZoom)) ;
 	}
 	
 	Vector convert_to_screen(Vector v) {
@@ -312,6 +312,8 @@ float getIntersection(Parabola p, Hermite h) {
 	
 	while (!( camera.convert_to_screen(h.getVal(t_end)) == camera.convert_to_screen(h.getVal(t_start)))) {
 		t_mid = (t_start + t_end) / 2.0;
+		//std::cout << camera.convert_to_screen(h.getVal(t_start)).x << ", " << camera.convert_to_screen(h.getVal(t_end)).x << ", Y: ";
+		//std::cout << camera.convert_to_screen(h.getVal(t_start)).y << ", " << camera.convert_to_screen(h.getVal(t_end)).y << std::endl;
 		if (p.in(h.getVal(t_start)) == p.in(h.getVal(t_mid))) {
 			t_start = t_mid;
 		} else {
