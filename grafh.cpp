@@ -62,6 +62,8 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Innentol modosithatod...
 
+const float EPSILON = 0.001;
+
 //--------------------------------------------------------
 // 3D Vektor
 //--------------------------------------------------------
@@ -89,6 +91,10 @@ struct Vector {
    Vector operator%(const Vector& v) { 	// cross product
 	return Vector(y*v.z-z*v.y, z*v.x - x*v.z, x*v.y - y*v.x);
    }
+   bool operator==(const Vector& v) {
+	return (*this - v).Length() < EPSILON;
+   }
+   
    float Length() { return sqrt(x * x + y * y + z * z); }
    float Dist(Vector v) { return (*this - v).Length(); }
    Vector norm() {return *this * (1 / this->Length()); }
@@ -176,9 +182,9 @@ struct Hermite {
 	Hermite(Vector p0, Vector p1, Vector v0, Vector v1, long t0, long t1)
 	: p0(p0), p1(p1), v0(v0),v1(v1),t0(t0),t1(t1) {}
 	
-	Vector getVal(long t) {
-		long dt1 = t - t0;
-		long dt = t1 - t0;
+	Vector getVal(float t) {
+		float dt1 = t - t0;
+		float dt = t1 - t0;
 		
 		Vector a0 = p0;
 		Vector a1 = v0;
@@ -187,9 +193,9 @@ struct Hermite {
 		return (a3 * dt1 * dt1 * dt1 + a2 * dt1 * dt1 + a1 * dt1 + a0); 
 	}
 	
-	Vector getDerived(long t) {
-		long dt1 = t - t0;
-		long dt = t1 - t0;
+	Vector getDerived(float t) {
+		float dt1 = t - t0;
+		float dt = t1 - t0;
 		
 		Vector a1 = v0;
 		Vector a2 = (p1- p0) * (3.0 / (dt * dt)) - (v1 + v0 * 2.0) * (1.0 / dt) ;
@@ -214,14 +220,14 @@ struct Camera {
 		yZoom = 1;
 	}
 	
-	/*float convert_to_screen_x(float value) {
-		return value;
-		//return ((value - xOffset) / worldWidth) * 2 * xZoom - xZoom;
+	float convert_to_screen_x(float value) {
+		//return value;
+		return ((value - xOffset) / worldWidth) * screenWidth * xZoom;
 	}
 
 	float convert_to_screen_y(float value) {
 		return  value;
-		//return (((value - yOffset) / worldHeight) * 2 * yZoom - yZoom) * (-1);
+		return (((value - yOffset) / worldHeight) * screenHeight * yZoom) ;
 	}
 	
 	Vector convert_to_screen(Vector v) {
@@ -229,10 +235,10 @@ struct Camera {
 	}
 	
 	float convert_to_screen(float l) {
-		return l;
-		//return l / 1000 * 2 * xZoom;
+		//return l;
+		return l / 1000 * 2 * xZoom;
 	}
-	*/
+	
 	
 	float convert_screen_x(float value) {
 		return value / screenWidth * worldWidth * xZoom + xOffset;
@@ -298,15 +304,21 @@ void fillImage(Color* image) {
 	}
 }
 
-Vector getIntersection(Parabola p, Hermite h) {
-	long t_start, t_end, t_mid;
+float getIntersection(Parabola p, Hermite h) {
+	float t_start, t_end, t_mid;
 	
 	t_start = h.t0;
 	t_end = h.t1;
 	
-	while (t_start - t_end > 2) {
-		t_mid = (t_start + t_end) / 2; 
+	while (!( camera.convert_to_screen(h.getVal(t_end)) == camera.convert_to_screen(h.getVal(t_start)))) {
+		t_mid = (t_start + t_end) / 2.0;
+		if (p.in(h.getVal(t_start)) == p.in(h.getVal(t_mid))) {
+			t_start = t_mid;
+		} else {
+			t_end = t_mid;
+		}
 	}
+	return t_mid;
 }
 
 struct SplineElement {
@@ -469,6 +481,13 @@ void onDisplay( ) {
 	mySpline.draw();
 
 	camera.drawLine(parabola.l, GREEN);
+	
+	if (mySpline.points > 2) {
+		Hermite h = mySpline.first->next->h;
+		float time = getIntersection(parabola,h);
+		Vector myVec = h.getVal(time);
+		camera.drawLine(Line(myVec, h.getDerived(time) + myVec),GREEN);
+	}
 
     glutSwapBuffers();     				// Buffercsere: rajzolas vege
 
