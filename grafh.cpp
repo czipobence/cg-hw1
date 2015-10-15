@@ -121,6 +121,8 @@ struct Parabola {
 	
 	Parabola (Vector l1, Vector l2, Vector f) : l(l1,l2), f(f) {}
 	Parabola () : l(Vector::null(), Vector::null()), f(Vector::null()) {}
+	
+	bool in(Vector v) { return l.dist(v) < f.Dist(v);}
 };
 
 Parabola parabola;
@@ -183,6 +185,16 @@ struct Hermite {
 		Vector a2 = (p1- p0) * (3.0 / (dt * dt)) - (v1 + v0 * 2.0) * (1.0 / dt) ;
 		Vector a3 = (p0 - p1) * (2.0 / dt / dt / dt) + (v0 + v1) * (1.0 / dt / dt);
 		return (a3 * dt1 * dt1 * dt1 + a2 * dt1 * dt1 + a1 * dt1 + a0); 
+	}
+	
+	Vector getDerived(long t) {
+		long dt1 = t - t0;
+		long dt = t1 - t0;
+		
+		Vector a1 = v0;
+		Vector a2 = (p1- p0) * (3.0 / (dt * dt)) - (v1 + v0 * 2.0) * (1.0 / dt) ;
+		Vector a3 = (p0 - p1) * (2.0 / dt / dt / dt) + (v0 + v1) * (1.0 / dt / dt);
+		return (a3 * dt1 * dt1 * 3 + a2 * dt1 * 2 + a1); 
 	}
 	
 };
@@ -281,8 +293,19 @@ void fillImage(Color* image) {
     for(int Y = 0; Y < screenHeight; Y++) {
 		for(int X = 0; X < screenWidth; X++) {
 			Vector v(camera.convert_screen_x(X),worldHeight - camera.convert_screen_y(Y));
-			image[Y * screenHeight + X] = (parabola.l.dist(v) < parabola.f.Dist(v)) ? YELLOW : CYAN;
+			image[Y * screenHeight + X] = (parabola.in(v)) ? CYAN : YELLOW;
 		}
+	}
+}
+
+Vector getIntersection(Parabola p, Hermite h) {
+	long t_start, t_end, t_mid;
+	
+	t_start = h.t0;
+	t_end = h.t1;
+	
+	while (t_start - t_end > 2) {
+		t_mid = (t_start + t_end) / 2; 
 	}
 }
 
