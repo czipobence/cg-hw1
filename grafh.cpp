@@ -109,6 +109,8 @@ struct Line {
 		dir = dir.norm();
 	}
 	
+	Line() : a(Vector::null()), dir (Vector::null()) {}
+	
 	float getYForX(float x) {
 		float lambda = (dir.x == 0) ? 0 : (x - a.x) / (dir.x);
 		return a.y + dir.y * lambda;
@@ -131,7 +133,6 @@ struct Parabola {
 	bool in(Vector v) { return l.dist(v) < f.Dist(v);}
 };
 
-Parabola parabola;
 
 //--------------------------------------------------------
 // Spektrum illetve szin
@@ -166,8 +167,6 @@ const int screenWidth = 600;	// alkalmazĂĄs ablak felbontĂĄsa
 const int screenHeight = 600;
 const int worldWidth = 1000;
 const int worldHeight = 1000;
-
-Color image[screenWidth*screenHeight];	// egy alkalmazĂĄs ablaknyi kĂŠp
 
 
 struct Hermite {
@@ -241,11 +240,11 @@ struct Camera {
 	
 	
 	float convert_screen_x(float value) {
-		return value / screenWidth * worldWidth * xZoom + xOffset;
+		return value / screenWidth * worldWidth / xZoom + xOffset;
 	}
 	
 	float convert_screen_y(float value) {
-		return (screenHeight - value) / screenHeight * worldHeight * yZoom + yOffset;
+		return (screenHeight - value) / screenHeight * worldHeight / yZoom + yOffset;
 	}
 	
 	
@@ -294,34 +293,6 @@ struct Camera {
 };
 
 Camera camera;
-
-void fillImage(Color* image) {
-    for(int Y = 0; Y < screenHeight; Y++) {
-		for(int X = 0; X < screenWidth; X++) {
-			Vector v(camera.convert_screen_x(X),worldHeight - camera.convert_screen_y(Y));
-			image[Y * screenHeight + X] = (parabola.in(v)) ? CYAN : YELLOW;
-		}
-	}
-}
-
-float getIntersection(Parabola p, Hermite h) {
-	float t_start, t_end, t_mid;
-	
-	t_start = h.t0;
-	t_end = h.t1;
-	
-	while (!( camera.convert_to_screen(h.getVal(t_end)) == camera.convert_to_screen(h.getVal(t_start)))) {
-		t_mid = (t_start + t_end) / 2.0;
-		//std::cout << camera.convert_to_screen(h.getVal(t_start)).x << ", " << camera.convert_to_screen(h.getVal(t_end)).x << ", Y: ";
-		//std::cout << camera.convert_to_screen(h.getVal(t_start)).y << ", " << camera.convert_to_screen(h.getVal(t_end)).y << std::endl;
-		if (p.in(h.getVal(t_start)) == p.in(h.getVal(t_mid))) {
-			t_start = t_mid;
-		} else {
-			t_end = t_mid;
-		}
-	}
-	return t_mid;
-}
 
 struct SplineElement {
 	Vector pos;
@@ -435,10 +406,6 @@ struct Spline{
 			first -> recalculateHermite(first, points);
 		}
 		points++;
-		if (points == 3) {
-			parabola = Parabola(first -> pos, first -> next -> pos, first -> next -> next -> pos);
-			fillImage(image);
-		}
 	}
 
 	void draw() {		
@@ -453,7 +420,72 @@ struct Spline{
 	}
 };
 
-Spline mySpline;
+struct Drawings {
+	Spline mySpline;
+	Parabola parabola;
+	Color image[screenWidth*screenHeight];
+	Vector intersectionPoint;
+	float intersectionTimeParam;
+	Line cmsTangential, parabolaTangential;
+	Hermite h;
+	
+	void getIntersection() {
+		float t_start, t_end, t_mid;
+		
+		h = mySpline.first->next->h;
+		
+		t_start = h.t0;
+		t_end = h.t1;
+		
+		while (!( camera.convert_to_screen(h.getVal(t_end)) == camera.convert_to_screen(h.getVal(t_start)))) {
+			t_mid = (t_start + t_end) / 2.0;
+			//std::cout << camera.convert_to_screen(h.getVal(t_start)).x << ", " << camera.convert_to_screen(h.getVal(t_end)).x << ", Y: ";
+			//std::cout << camera.convert_to_screen(h.getVal(t_start)).y << ", " << camera.convert_to_screen(h.getVal(t_end)).y << std::endl;
+			if (parabola.in(h.getVal(t_start)) == parabola.in(h.getVal(t_mid))) {
+				t_start = t_mid;
+			} else {
+				t_end = t_mid;
+			}
+		}
+		
+		intersectionTimeParam = t_mid;
+		intersectionPoint = h.getVal(intersectionTimeParam);
+	
+	}
+	
+	void fillImage() {
+		for(int Y = 0; Y < screenHeight; Y++) {
+			for(int X = 0; X < screenWidth; X++) {
+				Vector v(camera.convert_screen_x(X),camera.convert_screen_y(screenHeight - Y));
+				image[Y * screenHeight + X] = (parabola.in(v)) ? CYAN : YELLOW;
+			}
+		}
+	}
+	
+	void draw() {
+		if (mySpline.points == 3)
+			parabola = Parabola(mySpline.first -> pos, mySpline.first -> next -> pos, mySpline.first -> next -> next -> pos);
+		
+		if (mySpline.points > 2) {
+			fillImage();
+			getIntersection();
+			cmsTangential = Line(intersectionPoint, h.getDerived(intersectionTimeParam) + intersectionPoint);
+		}
+		
+		glDrawPixels(screenWidth, screenHeight, GL_RGB, GL_FLOAT, image);
+   
+		mySpline.draw();
+
+		camera.drawLine(parabola.l, GREEN);
+		
+		if (mySpline.points > 2) {
+			camera.drawLine(cmsTangential,GREEN);
+		}
+		
+	}
+};
+
+Drawings d;
 
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( ) { 
@@ -462,7 +494,7 @@ void onInitialization( ) {
     // Peldakent keszitunk egy kepet az operativ memoriaba
     for(int Y = 0; Y < screenHeight; Y++)
 		for(int X = 0; X < screenWidth; X++)
-			image[Y*screenWidth + X] = CYAN;
+			d.image[Y*screenWidth + X] = CYAN;
 			//image[Y*screenWidth + X] = Color((float)X/screenHeight,(float)Y/screenWidth,0);
 }
 
@@ -473,23 +505,9 @@ void onDisplay( ) {
 
     glMatrixMode(GL_PROJECTION); 
     glLoadIdentity();
-    gluOrtho2D(camera.xOffset,camera.xOffset + worldWidth / camera.xZoom,camera.yOffset,worldHeight/camera.yZoom);
+    gluOrtho2D(camera.xOffset,camera.xOffset + worldWidth / camera.xZoom,camera.yOffset,camera.yOffset + worldHeight/camera.yZoom);
 
-    // Peldakent atmasoljuk a kepet a rasztertarba
-    glDrawPixels(screenWidth, screenHeight, GL_RGB, GL_FLOAT, image);
-    // Majd rajzolunk egy kek haromszoget
-	glColor3f(0,0,1);
-
-	mySpline.draw();
-
-	camera.drawLine(parabola.l, GREEN);
-	
-	if (mySpline.points > 2) {
-		Hermite h = mySpline.first->next->h;
-		float time = getIntersection(parabola,h);
-		Vector myVec = h.getVal(time);
-		camera.drawLine(Line(myVec, h.getDerived(time) + myVec),GREEN);
-	}
+	d.draw();
 
     glutSwapBuffers();     				// Buffercsere: rajzolas vege
 
@@ -498,6 +516,7 @@ void onDisplay( ) {
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y) {
     if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
+    if (key == 'a') {camera.xZoom = camera.yZoom = 2;camera.xOffset = camera.yOffset = 250;glutPostRedisplay( );} 		// d beture rajzold ujra a kepet
 }
 
 // Billentyuzet esemenyeket lekezelo fuggveny (felengedes)
@@ -511,7 +530,7 @@ void onMouse(int button, int state, int x, int y) {
 		float wx = camera.convert_screen_x(x);
 		float wy = camera.convert_screen_y(y);
 		long time = glutGet(GLUT_ELAPSED_TIME);
-		mySpline.add(Vector(wx,wy), time);
+		d.mySpline.add(Vector(wx,wy), time);
 		std::cout << wx << ", " << wy << ", " << time << std::endl;
 		glutPostRedisplay( );
 	}
