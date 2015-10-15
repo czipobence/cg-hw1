@@ -131,6 +131,19 @@ struct Parabola {
 	Parabola () : l(Vector::null(), Vector::null()), f(Vector::null()) {}
 	
 	bool in(Vector v) { return l.dist(v) < f.Dist(v);}
+	
+	Vector getDerived (float t) {
+		return Vector(1,1);
+	}
+	
+	float getParamForPoint(Vector v) {
+		return 0;
+	}
+	
+	Vector getDerivedAtPoint (Vector v) {
+		return getDerived(getParamForPoint(v));
+	}
+	
 };
 
 
@@ -429,10 +442,8 @@ struct Drawings {
 	Line cmsTangential, parabolaTangential;
 	Hermite h;
 	
-	void getIntersection() {
+	float getIntersection() {
 		float t_start, t_end, t_mid;
-		
-		h = mySpline.first->next->h;
 		
 		t_start = h.t0;
 		t_end = h.t1;
@@ -448,8 +459,7 @@ struct Drawings {
 			}
 		}
 		
-		intersectionTimeParam = t_mid;
-		intersectionPoint = h.getVal(intersectionTimeParam);
+		return t_mid;
 	
 	}
 	
@@ -468,18 +478,22 @@ struct Drawings {
 		
 		if (mySpline.points > 2) {
 			fillImage();
-			getIntersection();
+			
+			h = mySpline.first->next->h;
+			intersectionTimeParam = getIntersection();
+			intersectionPoint = h.getVal(intersectionTimeParam);
+			
 			cmsTangential = Line(intersectionPoint, h.getDerived(intersectionTimeParam) + intersectionPoint);
+			parabolaTangential = Line(intersectionPoint, parabola.getDerivedAtPoint(intersectionPoint) + intersectionPoint);
 		}
 		
 		glDrawPixels(screenWidth, screenHeight, GL_RGB, GL_FLOAT, image);
    
 		mySpline.draw();
 
-		camera.drawLine(parabola.l, GREEN);
-		
 		if (mySpline.points > 2) {
 			camera.drawLine(cmsTangential,GREEN);
+			camera.drawLine(parabolaTangential, GREEN);
 		}
 		
 	}
