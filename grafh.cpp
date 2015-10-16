@@ -529,22 +529,39 @@ Drawings d;
 
 struct Animation {
 	Vector animationSpeed;
+	bool started;
+	long lastStep;
+	static const long INTERVAL = 1000;
 	
-	Animation() : animationSpeed(2,3) {}
+	Animation() : animationSpeed(2,3), started(false), lastStep(0) {}
 	
 	void step() {
+		if (!started) return;
 		camera.offset = camera.offset + animationSpeed;
 		Vector tr = camera.getTopRight();
 		if (tr.x > worldWidth) {
 			camera.offset.x -= tr.x - worldWidth;
 			animationSpeed.x *= -1;
 		}
-		if (tr.y > worldWidth) {
-			camera.offset.x -= tr.x - worldWidth;
+		if (tr.y > worldHeight) {
+			camera.offset.y -= tr.y - worldHeight;
+			animationSpeed.y *= -1;
+		}
+		if (camera.offset.x < 0) {
+			camera.offset.x = 0;
 			animationSpeed.x *= -1;
 		}
+		if (camera.offset.y < 0) {
+			camera.offset.y = 0;
+			animationSpeed.y *= -1;
+		}
+		
+		lastStep = glutGet(GLUT_ELAPSED_TIME);
+		
 	}
 };
+
+Animation anim;
 
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( ) { 
@@ -575,7 +592,13 @@ void onDisplay( ) {
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y) {
     if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
-    if (key == ' ') {camera.zoom.x = camera.zoom.y = 2;camera.offset.x = camera.offset.y = 250;glutPostRedisplay( );} 		// d beture rajzold ujra a kepet
+    if (key == ' ' && !anim.started) {
+		camera.zoom.x = camera.zoom.y = 2;
+		camera.offset.x = worldWidth /2 - worldWidth / camera.zoom.x / 2; 
+		camera.offset.y = worldHeight /2 - worldHeight / camera.zoom.y / 2;
+		anim.started = true;
+		glutPostRedisplay( );
+	} 		// d beture rajzold ujra a kepet
 }
 
 // Billentyuzet esemenyeket lekezelo fuggveny (felengedes)
@@ -603,8 +626,11 @@ void onMouseMotion(int x, int y)
 
 // `Idle' esemenykezelo, jelzi, hogy az ido telik, az Idle esemenyek frekvenciajara csak a 0 a garantalt minimalis ertek
 void onIdle( ) {
-    // long time = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
-
+    long time = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
+    if (((time - anim.lastStep) > anim.INTERVAL) && anim.started) {
+		anim.step();
+		glutPostRedisplay( );
+	} 
 }
 
 // ...Idaig modosithatod
