@@ -600,11 +600,13 @@ void onMouseMotion(int x, int y)
 }
 
 void onIdle( ) {
-    long time = glutGet(GLUT_ELAPSED_TIME);
-    if (((time - anim.lastStep) > anim.INTERVAL) && anim.started) {
-		anim.step();
-		glutPostRedisplay( );
-	} 
+	if (anim.started) {
+		long time = glutGet(GLUT_ELAPSED_TIME);
+		if (((time - anim.lastStep) > anim.INTERVAL)) {
+			anim.step();
+			glutPostRedisplay( );
+		} 
+	}
 }
 
 // ...Idaig modosithatod
