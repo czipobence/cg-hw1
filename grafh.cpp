@@ -443,6 +443,43 @@ struct Spline{
 	}
 };
 
+
+struct Animation {
+	Vector animationSpeed;
+	bool started;
+	long lastStep;
+	static const long INTERVAL = 1000;
+	
+	Animation() : animationSpeed(2,3), started(false), lastStep(0) {}
+	
+	void step() {
+		lastStep = glutGet(GLUT_ELAPSED_TIME);
+		if (!started) return;
+		camera.offset = camera.offset + animationSpeed;
+		Vector tr = camera.getTopRight();
+		if (tr.x > WORLD_WIDTH) {
+			camera.offset.x -= tr.x - WORLD_WIDTH;
+			animationSpeed.x *= -1;
+		}
+		if (tr.y > WORLD_HEIGHT) {
+			camera.offset.y -= tr.y - WORLD_HEIGHT;
+			animationSpeed.y *= -1;
+		}
+		if (camera.offset.x < 0) {
+			camera.offset.x = 0;
+			animationSpeed.x *= -1;
+		}
+		if (camera.offset.y < 0) {
+			camera.offset.y = 0;
+			animationSpeed.y *= -1;
+		}
+		
+		
+	}
+};
+
+Animation anim;
+
 struct Drawings {
 	Spline mySpline;
 	Parabola parabola;
@@ -481,11 +518,15 @@ struct Drawings {
 	}
 	
 	void draw() {
-		if (mySpline.points == 3)
+		if (mySpline.points == 3) {
 			parabola = Parabola(mySpline.first -> pos, mySpline.first -> next -> pos, mySpline.first -> next -> next -> pos);
+		}
+		
+		if (mySpline.points == 3 || anim.started) {
+			fillImage();
+		}
 		
 		if (mySpline.points > 2) {
-			fillImage();
 			
 			h = mySpline.first->next->h;
 			intersectionTimeParam = getIntersection();
@@ -509,41 +550,6 @@ struct Drawings {
 
 Drawings d;
 
-struct Animation {
-	Vector animationSpeed;
-	bool started;
-	long lastStep;
-	static const long INTERVAL = 1000;
-	
-	Animation() : animationSpeed(2,3), started(false), lastStep(0) {}
-	
-	void step() {
-		if (!started) return;
-		camera.offset = camera.offset + animationSpeed;
-		Vector tr = camera.getTopRight();
-		if (tr.x > WORLD_WIDTH) {
-			camera.offset.x -= tr.x - WORLD_WIDTH;
-			animationSpeed.x *= -1;
-		}
-		if (tr.y > WORLD_HEIGHT) {
-			camera.offset.y -= tr.y - WORLD_HEIGHT;
-			animationSpeed.y *= -1;
-		}
-		if (camera.offset.x < 0) {
-			camera.offset.x = 0;
-			animationSpeed.x *= -1;
-		}
-		if (camera.offset.y < 0) {
-			camera.offset.y = 0;
-			animationSpeed.y *= -1;
-		}
-		
-		lastStep = glutGet(GLUT_ELAPSED_TIME);
-		
-	}
-};
-
-Animation anim;
 
 void onInitialization( ) { 
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
