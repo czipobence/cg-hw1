@@ -27,8 +27,8 @@
 //
 // NYILATKOZAT
 // ---------------------------------------------------------------------------------------------
-// Nev    : <VEZETEKNEV(EK)> <KERESZTNEV(EK)>
-// Neptun : <NEPTUN KOD>
+// Nev    : Czipó Bence
+// Neptun : B462JZ
 // ---------------------------------------------------------------------------------------------
 // ezennel kijelentem, hogy a feladatot magam keszitettem, es ha barmilyen segitseget igenybe vettem vagy 
 // mas szellemi termeket felhasznaltam, akkor a forrast es az atvett reszt kommentekben egyertelmuen jeloltem. 
@@ -528,7 +528,7 @@ struct Drawings {
 			fillImage();
 		}
 		
-		if (mySpline.points > 2 && mySpline.points < 5) {
+		if (mySpline.points > 2) {
 			
 			h = mySpline.first->next->h;
 			intersectionTimeParam = getIntersection();
