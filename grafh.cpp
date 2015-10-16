@@ -121,23 +121,50 @@ struct Line {
 		return d.Length();
 	}
 	
+	Vector getNormal() {
+		return Vector(dir.y, -1 * dir.x);
+	}
+	
 };
 
 struct Parabola {
 	Line l;
 	Vector f;
 	
-	Parabola (Vector l1, Vector l2, Vector f) : l(l1,l2), f(f) {}
+	Parabola (Vector l1, Vector l2, Vector f) : l(l1,l2), f(f) {
+		if ( ((f - l.a) % l.dir).z < 0 ) {
+			l.dir = l.dir * -1;
+		}
+	}
 	Parabola () : l(Vector::null(), Vector::null()), f(Vector::null()) {}
 	
 	bool in(Vector v) { return l.dist(v) < f.Dist(v);}
 	
+	float df() {
+		return l.dist(f) / 2;
+	}
+	
+	Vector getValue(float t) {
+		//if ( ((f - l.a) % l.dir).z < 0 ) {
+		//	l.dir = l.dir * -1;
+		//}
+		return (f - l.getNormal() * 2 * df()) + l.dir * t + l.getNormal() * (t*t / 4 / df() + df());
+	}
+	
 	Vector getDerived (float t) {
-		return Vector(1,1);
+		return l.dir + l.getNormal() * (t / 2 / df());
 	}
 	
 	float getParamForPoint(Vector v) {
-		return 0;
+		Vector f_vet = l.dir * ((f - l.a) * l.dir) + l.a;
+		Vector to_point = l.dir * ((f_vet - v) * l.dir);
+		
+		float param = to_point.Length();
+		if ( (to_point % (f - f_vet)).z < 0) {
+			param *= -1;
+		}
+		
+		return param;
 	}
 	
 	Vector getDerivedAtPoint (Vector v) {
@@ -448,7 +475,7 @@ struct Drawings {
 		t_start = h.t0;
 		t_end = h.t1;
 		
-		while (!( camera.convert_to_screen(h.getVal(t_end)) == camera.convert_to_screen(h.getVal(t_start)))) {
+		while (!( camera.convert_to_screen(h.getVal(t_end)) == camera.convert_to_screen(h.getVal(t_start))) && ((t_end - t_start) > EPSILON)) {
 			t_mid = (t_start + t_end) / 2.0;
 			//std::cout << camera.convert_to_screen(h.getVal(t_start)).x << ", " << camera.convert_to_screen(h.getVal(t_end)).x << ", Y: ";
 			//std::cout << camera.convert_to_screen(h.getVal(t_start)).y << ", " << camera.convert_to_screen(h.getVal(t_end)).y << std::endl;
@@ -530,7 +557,7 @@ void onDisplay( ) {
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y) {
     if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
-    if (key == 'a') {camera.xZoom = camera.yZoom = 2;camera.xOffset = camera.yOffset = 250;glutPostRedisplay( );} 		// d beture rajzold ujra a kepet
+    if (key == ' ') {camera.xZoom = camera.yZoom = 2;camera.xOffset = camera.yOffset = 250;glutPostRedisplay( );} 		// d beture rajzold ujra a kepet
 }
 
 // Billentyuzet esemenyeket lekezelo fuggveny (felengedes)
