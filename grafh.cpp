@@ -509,9 +509,11 @@ struct Drawings {
 	}
 	
 	void fillImage() {
+		Vector v(0,0);
 		for(int Y = 0; Y < SCREEN_HEIGHT; Y++) {
 			for(int X = 0; X < SCREEN_WIDTH; X++) {
-				Vector v(camera.convert_screen_x(X),camera.convert_screen_y(SCREEN_HEIGHT - Y));
+				v.x = camera.convert_screen_x(X);
+				v.y = camera.convert_screen_y(SCREEN_HEIGHT - Y);
 				image[Y * SCREEN_HEIGHT + X] = (parabola.in(v)) ? YELLOW : CYAN;
 			}
 		}
@@ -526,7 +528,7 @@ struct Drawings {
 			fillImage();
 		}
 		
-		if (mySpline.points > 2) {
+		if (mySpline.points > 2 && mySpline.points < 5) {
 			
 			h = mySpline.first->next->h;
 			intersectionTimeParam = getIntersection();
