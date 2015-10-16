@@ -40,7 +40,7 @@
 // Tudomasul veszem, hogy a forrasmegjeloles kotelmenek megsertese eseten a hazifeladatra adhato pontokat 
 // negativ elojellel szamoljak el es ezzel parhuzamosan eljaras is indul velem szemben.
 //=============================================================================================
-
+#include <iostream>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdlib.h>
@@ -196,7 +196,7 @@ const Color WHITE(1,1,1);
 const Color CYAN(0,1,1);
 const Color GREEN(0,1,0);
 
-const int screenWidth = 600;
+const int screenWidth = 600;	// alkalmazĂĄs ablak felbontĂĄsa
 const int screenHeight = 600;
 const int worldWidth = 1000;
 const int worldHeight = 1000;
@@ -249,6 +249,7 @@ struct Camera {
 	}
 	
 	long convert_to_screen_x(float value) {
+		//return value;
 		return (long)(((value -offset.x) / worldWidth) * screenWidth * zoom.x);
 	}
 
@@ -259,6 +260,11 @@ struct Camera {
 	
 	Vector convert_to_screen(Vector v) {
 		return Vector(convert_to_screen_x(v.x), convert_to_screen_y(v.y));
+	}
+	
+	float convert_to_screen(float l) {
+		//return l;
+		return l / 1000 * 2 * zoom.x;
 	}
 	
 	
@@ -323,7 +329,7 @@ Camera camera;
 struct SplineElement {
 	Vector pos;
 	Vector vel;
-	long time;
+	long time; //ago in a galaxy far far away
 	static const float RADIUS = 5;
 	SplineElement *next;
 	SplineElement *prev;
@@ -340,6 +346,9 @@ struct SplineElement {
 	
 	void drawPoint() {
 		camera.drawCircle(pos,RADIUS,RED,WHITE);
+		//std::cout << "DRAW x:" << pos.x << " Y:" << pos.y << " v: "<< vel.x << ", " << vel.y << std::endl;
+		//std::cout << "HERM P0: " << h.p0.x << ", " << h.p0.y << " t0:" << h.t0 << " V0: " << h.v0.x << ", " << h.v0.y <<
+		//" P1: " << h.p1.x << ", " << h.p1.y << " t1:" << h.t1 << " V1: " << h.v1.x << ", " << h.v1.y << std::endl;
 		if (next != NULL)
 			next -> drawPoint();
 	}
@@ -460,6 +469,8 @@ struct Drawings {
 		
 		while (!( camera.convert_to_screen(h.getVal(t_end)) == camera.convert_to_screen(h.getVal(t_start))) && ((t_end - t_start) > EPSILON)) {
 			t_mid = (t_start + t_end) / 2.0;
+			//std::cout << camera.convert_to_screen(h.getVal(t_start)).x << ", " << camera.convert_to_screen(h.getVal(t_end)).x << ", Y: ";
+			//std::cout << camera.convert_to_screen(h.getVal(t_start)).y << ", " << camera.convert_to_screen(h.getVal(t_end)).y << std::endl;
 			if (parabola.in(h.getVal(t_start)) == parabola.in(h.getVal(t_mid))) {
 				t_start = t_mid;
 			} else {
@@ -545,17 +556,21 @@ struct Animation {
 
 Animation anim;
 
+// Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( ) { 
 	glViewport(0, 0, screenWidth, screenHeight);
 
+    // Peldakent keszitunk egy kepet az operativ memoriaba
     for(int Y = 0; Y < screenHeight; Y++)
 		for(int X = 0; X < screenWidth; X++)
 			d.image[Y*screenWidth + X] = CYAN;
+			//image[Y*screenWidth + X] = Color((float)X/screenHeight,(float)Y/screenWidth,0);
 }
 
+// Rajzolas, ha az alkalmazas ablak ervenytelenne valik, akkor ez a fuggveny hivodik meg
 void onDisplay( ) {
-    glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.1f, 0.2f, 0.3f, 1.0f);		// torlesi szin beallitasa
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
 
     glMatrixMode(GL_PROJECTION); 
     glLoadIdentity();
@@ -563,44 +578,48 @@ void onDisplay( ) {
 
 	d.draw();
 
-    glutSwapBuffers();     			
+    glutSwapBuffers();     				// Buffercsere: rajzolas vege
 
 }
 
+// Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y) {
-    if (key == 'd') glutPostRedisplay( ); 
+    if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
     if (key == ' ' && !anim.started) {
 		camera.zoom.x = camera.zoom.y = 2;
 		camera.offset.x = worldWidth /2 - worldWidth / camera.zoom.x / 2; 
 		camera.offset.y = worldHeight /2 - worldHeight / camera.zoom.y / 2;
 		anim.started = true;
 		glutPostRedisplay( );
-	}
+	} 		// d beture rajzold ujra a kepet
 }
 
+// Billentyuzet esemenyeket lekezelo fuggveny (felengedes)
 void onKeyboardUp(unsigned char key, int x, int y) {
 
 }
 
+// Eger esemenyeket lekezelo fuggveny
 void onMouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-		if (!anim.started) {
-			float wx = camera.convert_screen_x(x);
-			float wy = camera.convert_screen_y(y);
-			long time = glutGet(GLUT_ELAPSED_TIME);
-			d.mySpline.add(Vector(wx,wy), time);
-			glutPostRedisplay( );
-		}
+		float wx = camera.convert_screen_x(x);
+		float wy = camera.convert_screen_y(y);
+		long time = glutGet(GLUT_ELAPSED_TIME);
+		d.mySpline.add(Vector(wx,wy), time);
+		std::cout << wx << ", " << wy << ", " << time << std::endl;
+		glutPostRedisplay( );
 	}
 }
 
+// Eger mozgast lekezelo fuggveny
 void onMouseMotion(int x, int y)
 {
 
 }
 
+// `Idle' esemenykezelo, jelzi, hogy az ido telik, az Idle esemenyek frekvenciajara csak a 0 a garantalt minimalis ertek
 void onIdle( ) {
-    long time = glutGet(GLUT_ELAPSED_TIME);
+    long time = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
     if (((time - anim.lastStep) > anim.INTERVAL) && anim.started) {
 		anim.step();
 		glutPostRedisplay( );
