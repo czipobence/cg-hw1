@@ -196,10 +196,10 @@ const Color WHITE(1,1,1);
 const Color CYAN(0,1,1);
 const Color GREEN(0,1,0);
 
-const int screenWidth = 600;
-const int screenHeight = 600;
-const int worldWidth = 1000;
-const int worldHeight = 1000;
+const int SCREEN_WIDTH = 600;
+const int SCREEN_HEIGHT = 600;
+const int WORLD_WIDTH = 1000;
+const int WORLD_HEIGHT = 1000;
 
 
 struct Hermite {
@@ -249,12 +249,12 @@ struct Camera {
 	}
 	
 	long convert_to_screen_x(float value) {
-		return (long)(((value -offset.x) / worldWidth) * screenWidth * zoom.x);
+		return (long)(((value -offset.x) / WORLD_WIDTH) * SCREEN_WIDTH * zoom.x);
 	}
 
 	long convert_to_screen_y(float value) {
 		return  value;
-		return (long)((((value - offset.y) / worldHeight) * screenHeight * zoom.y)) ;
+		return (long)((((value - offset.y) / WORLD_HEIGHT) * SCREEN_HEIGHT * zoom.y)) ;
 	}
 	
 	Vector convert_to_screen(Vector v) {
@@ -263,15 +263,15 @@ struct Camera {
 	
 	
 	float convert_screen_x(float value) {
-		return value / screenWidth * worldWidth / zoom.x + offset.x;
+		return value / SCREEN_WIDTH * WORLD_WIDTH / zoom.x + offset.x;
 	}
 	
 	float convert_screen_y(float value) {
-		return (screenHeight - value) / screenHeight * worldHeight / zoom.y + offset.y;
+		return (SCREEN_HEIGHT - value) / SCREEN_HEIGHT * WORLD_HEIGHT / zoom.y + offset.y;
 	}
 	
 	Vector getTopRight() {
-		return Vector(offset.x + worldWidth / zoom.x, offset.y + worldHeight / zoom.y);
+		return Vector(offset.x + WORLD_WIDTH / zoom.x, offset.y + WORLD_HEIGHT / zoom.y);
 	}
 	
 	void drawCircle(Vector point, float radius, Color fill, Color border) {
@@ -306,11 +306,11 @@ struct Camera {
 		if (l.dir.x != 0) {
 			float tmp = l.getYForX(offset.x);
 			glVertex2f(offset.x,tmp);
-			tmp = l.getYForX(offset.x + worldWidth / zoom.x);
-			glVertex2f(offset.x + worldWidth / zoom.x,tmp);
+			tmp = l.getYForX(offset.x + WORLD_WIDTH / zoom.x);
+			glVertex2f(offset.x + WORLD_WIDTH / zoom.x,tmp);
 		} else {
 			glVertex2f(l.a.x,offset.y);
-			glVertex2f(l.a.x,offset.y + worldHeight/ zoom.y);
+			glVertex2f(l.a.x,offset.y + WORLD_HEIGHT/ zoom.y);
 		}
 		
 		glEnd();
@@ -446,7 +446,7 @@ struct Spline{
 struct Drawings {
 	Spline mySpline;
 	Parabola parabola;
-	Color image[screenWidth*screenHeight];
+	Color image[SCREEN_WIDTH*SCREEN_HEIGHT];
 	Vector intersectionPoint;
 	float intersectionTimeParam;
 	Line cmsTangential, parabolaTangential;
@@ -472,10 +472,10 @@ struct Drawings {
 	}
 	
 	void fillImage() {
-		for(int Y = 0; Y < screenHeight; Y++) {
-			for(int X = 0; X < screenWidth; X++) {
-				Vector v(camera.convert_screen_x(X),camera.convert_screen_y(screenHeight - Y));
-				image[Y * screenHeight + X] = (parabola.in(v)) ? YELLOW : CYAN;
+		for(int Y = 0; Y < SCREEN_HEIGHT; Y++) {
+			for(int X = 0; X < SCREEN_WIDTH; X++) {
+				Vector v(camera.convert_screen_x(X),camera.convert_screen_y(SCREEN_HEIGHT - Y));
+				image[Y * SCREEN_HEIGHT + X] = (parabola.in(v)) ? YELLOW : CYAN;
 			}
 		}
 	}
@@ -495,7 +495,7 @@ struct Drawings {
 			parabolaTangential = Line(intersectionPoint, parabola.getDerivedAtPoint(intersectionPoint) + intersectionPoint);
 		}
 		
-		glDrawPixels(screenWidth, screenHeight, GL_RGB, GL_FLOAT, image);
+		glDrawPixels(SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_FLOAT, image);
    
 		mySpline.draw();
 
@@ -521,12 +521,12 @@ struct Animation {
 		if (!started) return;
 		camera.offset = camera.offset + animationSpeed;
 		Vector tr = camera.getTopRight();
-		if (tr.x > worldWidth) {
-			camera.offset.x -= tr.x - worldWidth;
+		if (tr.x > WORLD_WIDTH) {
+			camera.offset.x -= tr.x - WORLD_WIDTH;
 			animationSpeed.x *= -1;
 		}
-		if (tr.y > worldHeight) {
-			camera.offset.y -= tr.y - worldHeight;
+		if (tr.y > WORLD_HEIGHT) {
+			camera.offset.y -= tr.y - WORLD_HEIGHT;
 			animationSpeed.y *= -1;
 		}
 		if (camera.offset.x < 0) {
@@ -546,11 +546,11 @@ struct Animation {
 Animation anim;
 
 void onInitialization( ) { 
-	glViewport(0, 0, screenWidth, screenHeight);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    for(int Y = 0; Y < screenHeight; Y++)
-		for(int X = 0; X < screenWidth; X++)
-			d.image[Y*screenWidth + X] = CYAN;
+    for(int Y = 0; Y < SCREEN_HEIGHT; Y++)
+		for(int X = 0; X < SCREEN_WIDTH; X++)
+			d.image[Y*SCREEN_WIDTH + X] = CYAN;
 }
 
 void onDisplay( ) {
@@ -559,7 +559,7 @@ void onDisplay( ) {
 
     glMatrixMode(GL_PROJECTION); 
     glLoadIdentity();
-    gluOrtho2D(camera.offset.x,camera.offset.x + worldWidth / camera.zoom.x,camera.offset.y,camera.offset.y + worldHeight/camera.zoom.y);
+    gluOrtho2D(camera.offset.x,camera.offset.x + WORLD_WIDTH / camera.zoom.x,camera.offset.y,camera.offset.y + WORLD_HEIGHT/camera.zoom.y);
 
 	d.draw();
 
@@ -571,8 +571,8 @@ void onKeyboard(unsigned char key, int x, int y) {
     if (key == 'd') glutPostRedisplay( ); 
     if (key == ' ' && !anim.started) {
 		camera.zoom.x = camera.zoom.y = 2;
-		camera.offset.x = worldWidth /2 - worldWidth / camera.zoom.x / 2; 
-		camera.offset.y = worldHeight /2 - worldHeight / camera.zoom.y / 2;
+		camera.offset.x = WORLD_WIDTH /2 - WORLD_WIDTH / camera.zoom.x / 2; 
+		camera.offset.y = WORLD_HEIGHT /2 - WORLD_HEIGHT / camera.zoom.y / 2;
 		anim.started = true;
 		glutPostRedisplay( );
 	}
