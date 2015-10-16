@@ -248,23 +248,21 @@ struct Hermite {
 struct Camera {
 	
 	Vector offset;
-	float xZoom;
-	float yZoom;
+	Vector zoom;
 	
 	Camera() {
 		offset = Vector::null();
-		xZoom = 1;
-		yZoom = 1;
+		zoom = Vector(1,1);
 	}
 	
 	long convert_to_screen_x(float value) {
 		//return value;
-		return (long)(((value -offset.x) / worldWidth) * screenWidth * xZoom);
+		return (long)(((value -offset.x) / worldWidth) * screenWidth * zoom.x);
 	}
 
 	long convert_to_screen_y(float value) {
 		return  value;
-		return (long)((((value - offset.y) / worldHeight) * screenHeight * yZoom)) ;
+		return (long)((((value - offset.y) / worldHeight) * screenHeight * zoom.y)) ;
 	}
 	
 	Vector convert_to_screen(Vector v) {
@@ -273,18 +271,21 @@ struct Camera {
 	
 	float convert_to_screen(float l) {
 		//return l;
-		return l / 1000 * 2 * xZoom;
+		return l / 1000 * 2 * zoom.x;
 	}
 	
 	
 	float convert_screen_x(float value) {
-		return value / screenWidth * worldWidth / xZoom + offset.x;
+		return value / screenWidth * worldWidth / zoom.x + offset.x;
 	}
 	
 	float convert_screen_y(float value) {
-		return (screenHeight - value) / screenHeight * worldHeight / yZoom + offset.y;
+		return (screenHeight - value) / screenHeight * worldHeight / zoom.y + offset.y;
 	}
 	
+	Vector getTopRight() {
+		return Vector(offset.x + worldWidth / zoom.x, offset.y + worldHeight / zoom.y);
+	}
 	
 	void drawCircle(Vector point, float radius, Color fill, Color border) {
 		glColor3f(fill.r, fill.g, fill.b);
@@ -318,11 +319,11 @@ struct Camera {
 		if (l.dir.x != 0) {
 			float tmp = l.getYForX(offset.x);
 			glVertex2f(offset.x,tmp);
-			tmp = l.getYForX(offset.x + worldWidth / xZoom);
-			glVertex2f(offset.x + worldWidth / xZoom,tmp);
+			tmp = l.getYForX(offset.x + worldWidth / zoom.x);
+			glVertex2f(offset.x + worldWidth / zoom.x,tmp);
 		} else {
 			glVertex2f(l.a.x,offset.y);
-			glVertex2f(l.a.x,offset.y + worldHeight/ yZoom);
+			glVertex2f(l.a.x,offset.y + worldHeight/ zoom.y);
 		}
 		
 		glEnd();
@@ -529,7 +530,19 @@ Drawings d;
 struct Animation {
 	Vector animationSpeed;
 	
+	Animation() : animationSpeed(2,3) {}
+	
 	void step() {
+		camera.offset = camera.offset + animationSpeed;
+		Vector tr = camera.getTopRight();
+		if (tr.x > worldWidth) {
+			camera.offset.x -= tr.x - worldWidth;
+			animationSpeed.x *= -1;
+		}
+		if (tr.y > worldWidth) {
+			camera.offset.x -= tr.x - worldWidth;
+			animationSpeed.x *= -1;
+		}
 	}
 };
 
@@ -551,7 +564,7 @@ void onDisplay( ) {
 
     glMatrixMode(GL_PROJECTION); 
     glLoadIdentity();
-    gluOrtho2D(camera.offset.x,camera.offset.x + worldWidth / camera.xZoom,camera.offset.y,camera.offset.y + worldHeight/camera.yZoom);
+    gluOrtho2D(camera.offset.x,camera.offset.x + worldWidth / camera.zoom.x,camera.offset.y,camera.offset.y + worldHeight/camera.zoom.y);
 
 	d.draw();
 
@@ -562,7 +575,7 @@ void onDisplay( ) {
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y) {
     if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
-    if (key == ' ') {camera.xZoom = camera.yZoom = 2;camera.offset.x = camera.offset.y = 250;glutPostRedisplay( );} 		// d beture rajzold ujra a kepet
+    if (key == ' ') {camera.zoom.x = camera.zoom.y = 2;camera.offset.x = camera.offset.y = 250;glutPostRedisplay( );} 		// d beture rajzold ujra a kepet
 }
 
 // Billentyuzet esemenyeket lekezelo fuggveny (felengedes)
