@@ -583,8 +583,8 @@ void onKeyboardUp(unsigned char key, int x, int y) {
 }
 
 void onMouse(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-		if (!anim.started) {
+	if (!anim.started) {
+		if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 			float wx = camera.convert_screen_x(x);
 			float wy = camera.convert_screen_y(y);
 			long time = glutGet(GLUT_ELAPSED_TIME);
