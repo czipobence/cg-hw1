@@ -144,12 +144,12 @@ struct Parabola {
 		return l.dist(f) / 2;
 	}
 	
-	Vector getValue(float t) {
+	/*Vector getValue(float t) {
 		//if ( ((f - l.a) % l.dir).z < 0 ) {
 		//	l.dir = l.dir * -1;
 		//}
 		return (f - l.getNormal() * 2 * df()) + l.dir * t + l.getNormal() * (t*t / 4 / df() + df());
-	}
+	}*/
 	
 	Vector getDerived (float t) {
 		return l.dir + l.getNormal() * (t / 2 / df());
@@ -247,26 +247,24 @@ struct Hermite {
 
 struct Camera {
 	
-	int xOffset;
-	int yOffset;
+	Vector offset;
 	float xZoom;
 	float yZoom;
 	
 	Camera() {
-		xOffset = 0;
-		yOffset = 0;
+		offset = Vector::null();
 		xZoom = 1;
 		yZoom = 1;
 	}
 	
 	long convert_to_screen_x(float value) {
 		//return value;
-		return (long)(((value - xOffset) / worldWidth) * screenWidth * xZoom);
+		return (long)(((value -offset.x) / worldWidth) * screenWidth * xZoom);
 	}
 
 	long convert_to_screen_y(float value) {
 		return  value;
-		return (long)((((value - yOffset) / worldHeight) * screenHeight * yZoom)) ;
+		return (long)((((value - offset.y) / worldHeight) * screenHeight * yZoom)) ;
 	}
 	
 	Vector convert_to_screen(Vector v) {
@@ -280,11 +278,11 @@ struct Camera {
 	
 	
 	float convert_screen_x(float value) {
-		return value / screenWidth * worldWidth / xZoom + xOffset;
+		return value / screenWidth * worldWidth / xZoom + offset.x;
 	}
 	
 	float convert_screen_y(float value) {
-		return (screenHeight - value) / screenHeight * worldHeight / yZoom + yOffset;
+		return (screenHeight - value) / screenHeight * worldHeight / yZoom + offset.y;
 	}
 	
 	
@@ -318,13 +316,13 @@ struct Camera {
 		glColor3f(c.r,c.g,c.b);
 		glBegin(GL_LINES);
 		if (l.dir.x != 0) {
-			float tmp = l.getYForX(xOffset);
-			glVertex2f(xOffset,tmp);
-			tmp = l.getYForX(xOffset + worldWidth / xZoom);
-			glVertex2f(xOffset + worldWidth / xZoom,tmp);
+			float tmp = l.getYForX(offset.x);
+			glVertex2f(offset.x,tmp);
+			tmp = l.getYForX(offset.x + worldWidth / xZoom);
+			glVertex2f(offset.x + worldWidth / xZoom,tmp);
 		} else {
-			glVertex2f(l.a.x,yOffset);
-			glVertex2f(l.a.x,yOffset + worldHeight/ yZoom);
+			glVertex2f(l.a.x,offset.y);
+			glVertex2f(l.a.x,offset.y + worldHeight/ yZoom);
 		}
 		
 		glEnd();
@@ -528,6 +526,13 @@ struct Drawings {
 
 Drawings d;
 
+struct Animation {
+	Vector animationSpeed;
+	
+	void step() {
+	}
+};
+
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( ) { 
 	glViewport(0, 0, screenWidth, screenHeight);
@@ -546,7 +551,7 @@ void onDisplay( ) {
 
     glMatrixMode(GL_PROJECTION); 
     glLoadIdentity();
-    gluOrtho2D(camera.xOffset,camera.xOffset + worldWidth / camera.xZoom,camera.yOffset,camera.yOffset + worldHeight/camera.yZoom);
+    gluOrtho2D(camera.offset.x,camera.offset.x + worldWidth / camera.xZoom,camera.offset.y,camera.offset.y + worldHeight/camera.yZoom);
 
 	d.draw();
 
@@ -557,7 +562,7 @@ void onDisplay( ) {
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y) {
     if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
-    if (key == ' ') {camera.xZoom = camera.yZoom = 2;camera.xOffset = camera.yOffset = 250;glutPostRedisplay( );} 		// d beture rajzold ujra a kepet
+    if (key == ' ') {camera.xZoom = camera.yZoom = 2;camera.offset.x = camera.offset.y = 250;glutPostRedisplay( );} 		// d beture rajzold ujra a kepet
 }
 
 // Billentyuzet esemenyeket lekezelo fuggveny (felengedes)
