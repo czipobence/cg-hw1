@@ -576,7 +576,6 @@ void onDisplay( ) {
 }
 
 void onKeyboard(unsigned char key, int x, int y) {
-    if (key == 'd') glutPostRedisplay( ); 
     if (key == ' ' && !anim.started) {
 		camera.zoom.x = camera.zoom.y = 2;
 		camera.offset.x = WORLD_WIDTH /2 - WORLD_WIDTH / camera.zoom.x / 2; 
